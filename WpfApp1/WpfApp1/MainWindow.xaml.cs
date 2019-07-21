@@ -24,7 +24,7 @@ namespace WpfApp1
     public partial class MainWindow : Window
     {
         //Dictionary for Companies and their URLs
-        IDictionary<String, dynamic> CompanyFeeds = new Dictionary<String, dynamic>();
+        IDictionary<String, List<String>> CompanyFeeds = new Dictionary<String, List<String>>();
 
         //List Collection for Company URLs
         List<String> BBCUrl = new List<String>();
@@ -35,6 +35,7 @@ namespace WpfApp1
         //List Collection for the slacking companies
         List<String> SlackingCompanies = new List<String>();
 
+        Window1 results = new Window1();
 
 
         public MainWindow()
@@ -48,94 +49,113 @@ namespace WpfApp1
         }
 
         //Required Function
-        public List<String> InactiveCompanies(SelectedDatesCollection dates)
+        public void InactiveCompanies(SelectedDatesCollection dates)
         {
             //Iterate through dictionary
-            foreach (KeyValuePair<string, dynamic> entry in CompanyFeeds)
+            foreach (KeyValuePair<string, List<String>> entry in CompanyFeeds)
             {
-                //Load Feed
-                var r = XmlReader.Create(entry.Value);
-                var feed = SyndicationFeed.Load(r);
 
-                //Iterate through retrieved posts
-                foreach (SyndicationItem post in feed.Items)
-                {
-                    //If there is a post published in the date range continue
-                    //If the company hasnt posted in one feed but has in another we will remove it from the slacking pile
-                    if (dates.Contains(post.PublishDate.UtcDateTime))
+                foreach (String url in entry.Value) {
+
+                    //Load Feed
+                    XmlReaderSettings settings = new XmlReaderSettings();
+                    settings.DtdProcessing = DtdProcessing.Parse;
+                    var r = XmlReader.Create(url,settings);
+                    var feed = SyndicationFeed.Load(r);
+
+                    //Iterate through retrieved posts
+                    foreach (SyndicationItem post in feed.Items)
                     {
-                        if (SlackingCompanies.Contains(entry.Key))
+                        //If there is a post published in the date range continue
+                        //If the company hasnt posted in one feed but has in another we will remove it from the slacking pile
+                        if (dates.Contains(post.PublishDate.UtcDateTime))
                         {
-                            SlackingCompanies.Remove(entry.Key);
+                            if (SlackingCompanies.Contains(entry.Key))
+                            {
+                                SlackingCompanies.Remove(entry.Key);
+                                
+                            }
+                            
+                            continue;
                         }
-
-                        continue;
+                        else
+                        {
+                           
+                            if (SlackingCompanies.Contains(entry.Key)) { continue; }else
+                            //Add the company name to the slacking group if they havent posted 
+                            SlackingCompanies.Add(entry.Key);
+                            
+                            
+                        }
                     }
-                    else
-                    {
-                        //Add the company name to the slacking group if they havent posted 
-                        SlackingCompanies.Add(entry.Key);
-                    }
-
                 }
-
+               
             }
-            
-
-            return SlackingCompanies;
+            results.CompanyGrid.ItemsSource = SlackingCompanies;
+            results.Show();
         }
 
-        //BBC Radio Button Function
-        private void BBC_RadioButton_Checked(object sender, RoutedEventArgs e)
+        //BBC Checked Button Function
+        private void BBCTracker_Checked(object sender, RoutedEventArgs e)
         {
             BBCUrl.Add("https://www.bbc.com/news/10628494");
-            if (BBCTrack.IsChecked == true)
+            if (BBCTracker.IsChecked == true)
             {
                 CompanyFeeds.Add("BBC", BBCUrl);
             }
-                
+            else
+            {
+                CompanyFeeds.Remove("BBC");
+            }
         }
-    
-        //Real Time Radio Button Function
-        private void RealTime_RadioButton_Checked(object sender, RoutedEventArgs e)
+
+        //Real Time Checked Button Function
+        private void RealTimeTracker_Checked(object sender, RoutedEventArgs e)
         {
             RealTimeUrl.Add("http://billmaher.hbo.libsynpro.com/rss");
-            if (RealTimeTrack.IsChecked == true)
+            if (RealTimeTracker.IsChecked == true)
             {
-                foreach (String i in RealTimeUrl){
-                    CompanyFeeds.Add("Real Time", RealTimeUrl.IndexOf(i));
-                }
+                CompanyFeeds.Add("Real Time", RealTimeUrl);
             }
-
+            else
+            {
+                CompanyFeeds.Remove("Real Time");
+            }
         }
 
-        //Bill Simmons Radio Button Function
-        private void BillSim_RadioButton_Checked(object sender, RoutedEventArgs e)
+        //Bill Simmons Checked Button Function
+        private void BillSimmTracker_Checked(object sender, RoutedEventArgs e)
         {
             BillSimmUrl.Add("https://rss.art19.com/the-bill-simmons-podcast");
-            if (BillSimTrack.IsChecked == true)
+            if (BillSimmTracker.IsChecked == true)
             {
-                foreach (String i in BillSimmUrl)
-                {
-                    CompanyFeeds.Add("Bill Simmons", BillSimmUrl.IndexOf(i));
-                }
+                CompanyFeeds.Add("Bill Simmons", BillSimmUrl);
             }
-
+            else
+            {
+                CompanyFeeds.Remove("Bill Simmons");
+            }
         }
 
-        //Diane Rehm Radio Button Function
-        private void Diane_RadioButton_Checked(object sender, RoutedEventArgs e)
+        //Diane Rehm Checked Button Function
+        private void DianeTracker_Changed(object sender, RoutedEventArgs e)
         {
             DianeUrl.Add("https://dianerehm.org/rss/npr/dr_podcast.xml");
-            if (DianeTrack.IsChecked == true)
+            if (DianeTracker.IsChecked == true)
             {
-                foreach (String i in DianeUrl)
-                {
-                    CompanyFeeds.Add("Diane Rehm", DianeUrl.IndexOf(i));
-                }
+                CompanyFeeds.Add("Diane Rehm", DianeUrl);
             }
+            else if(DianeTracker.IsChecked == false)
+            {
+                
+            }
+        }
 
-
+        private void DianeTracker_UnChecked(object sender, RoutedEventArgs e)
+        {
+            
+            CompanyFeeds.Remove("Diane Rehm");
+           
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -143,5 +163,7 @@ namespace WpfApp1
             SelectedDatesCollection dates = DateRange.SelectedDates;
             InactiveCompanies(dates);
         }
+
+       
     }
 }
