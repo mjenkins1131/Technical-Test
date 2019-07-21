@@ -18,8 +18,4 @@
 
 • Reply with questions if necessary, or document assumptions used to make progress.
 
-
-#Assumptions
-Days are restricted to less than or equal to 1 month.
-
 Im going to use C# WPF. Im not familiar with working with RSS Urls so much of my time will be spent researching. 
