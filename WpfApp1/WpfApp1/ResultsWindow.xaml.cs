@@ -17,16 +17,19 @@ namespace WpfApp1
     /// <summary>
     /// Interaction logic for Window1.xaml
     /// </summary>
-    public partial class Window1 : Window
+    public partial class Window1 : Window 
     {
+        
         public Window1()
         {
             InitializeComponent();
         }
 
-        private void CompanyGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
-
+            this.Hide();
+            WpfApp1.MainWindow.MainCS.ResetAll();
+           
         }
     }
 }

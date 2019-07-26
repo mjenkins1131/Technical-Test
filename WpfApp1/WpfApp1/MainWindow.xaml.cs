@@ -37,64 +37,90 @@ namespace WpfApp1
 
         Window1 results = new Window1();
 
-
+        public static MainWindow MainCS;
         public MainWindow()
         {
             InitializeComponent();
-        }
-
-        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            
+            MainCS = this;
         }
 
         //Required Function
         public void InactiveCompanies(SelectedDatesCollection dates)
         {
+            bool isInactive = true;
+
             //Iterate through dictionary
-            foreach (KeyValuePair<string, List<String>> entry in CompanyFeeds)
+            foreach (KeyValuePair<string, List<String>> company in CompanyFeeds)
             {
 
-                foreach (String url in entry.Value) {
+                foreach (String url in company.Value)
+                {
 
                     //Load Feed
                     XmlReaderSettings settings = new XmlReaderSettings();
                     settings.DtdProcessing = DtdProcessing.Parse;
-                    var r = XmlReader.Create(url,settings);
+                    var r = XmlReader.Create(url, settings);
                     var feed = SyndicationFeed.Load(r);
 
-                    //Iterate through retrieved posts
-                    foreach (SyndicationItem post in feed.Items)
+                    //Add the company name to the slacking group if they havent posted 
+                    if (checkInactive(feed) == true)
                     {
-                        //If there is a post published in the date range continue
-                        //If the company hasnt posted in one feed but has in another we will remove it from the slacking pile
-                        if (dates.Contains(post.PublishDate.UtcDateTime))
-                        {
-                            if (SlackingCompanies.Contains(entry.Key))
-                            {
-                                SlackingCompanies.Remove(entry.Key);
-                                
-                            }
-                            
-                            continue;
-                        }
-                        else
-                        {
-                           
-                            if (SlackingCompanies.Contains(entry.Key)) { continue; }else
-                            //Add the company name to the slacking group if they havent posted 
-                            SlackingCompanies.Add(entry.Key);
-                            
-                            
-                        }
+                        SlackingCompanies.Add(company.Key);
+                        continue;
                     }
+
+                    else
+                    {
+                        //If they have been active in different URL then we will remove 
+                        //them from the slacking list if they are already in it
+                        if (SlackingCompanies.Contains(company.Key))
+                        {
+                            SlackingCompanies.Remove(company.Key);
+                        }
+
+                        //reset booleon
+                        isInactive = true;
+                        break;
+                    }
+
+
                 }
-               
+
             }
+
+            //pass they slacking companies to the grid to be displayed
             results.CompanyGrid.ItemsSource = SlackingCompanies;
             results.Show();
+
+            bool checkInactive(SyndicationFeed feed)
+            {
+                //Iterate through retrieved posts
+                foreach (SyndicationItem post in feed.Items)
+                {
+
+                    //If there is a post published in the date range continue
+                    //If the company hasnt posted in one feed but has in another we will remove it from the slacking pile
+                    foreach (DateTime date in dates)
+                    {
+
+                        // MessageBox.Show(date.ToString());
+                        // MessageBox.Show(post.PublishDate.Date.ToString());
+
+                        if (date.Date == post.PublishDate.Date)
+                        {
+                            isInactive = false;
+                            break;
+                        }
+
+                    }
+
+                    if(isInactive == false) { break; }
+                }
+                return isInactive;
+            }
         }
 
+        
         //BBC Checked Button Function
         private void BBCTracker_Checked(object sender, RoutedEventArgs e)
         {
@@ -131,7 +157,7 @@ namespace WpfApp1
             {
                 CompanyFeeds.Add("Bill Simmons", BillSimmUrl);
             }
-            else
+            else if(BillSimmTracker.IsChecked == false)
             {
                 CompanyFeeds.Remove("Bill Simmons");
             }
@@ -147,7 +173,7 @@ namespace WpfApp1
             }
             else if(DianeTracker.IsChecked == false)
             {
-                
+                CompanyFeeds.Remove("Diane Rehm");
             }
         }
 
@@ -164,6 +190,19 @@ namespace WpfApp1
             InactiveCompanies(dates);
         }
 
-       
+        public void ResetAll()
+        {
+            //Reset all the collections
+            SlackingCompanies.Clear();
+            CompanyFeeds.Clear();
+
+            //Reset all the box checks
+            BillSimmTracker.IsChecked = false;
+            DianeTracker.IsChecked = false;
+            RealTimeTracker.IsChecked = false;
+            BBCTracker.IsChecked = false;
+        }
+
+
     }
 }
